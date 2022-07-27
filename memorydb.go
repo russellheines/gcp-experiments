@@ -7,9 +7,10 @@ import (
 )
 
 type Pet struct {
-	ID   string
-	Name string
-	Type string
+	ID       string
+	Name     string
+	Type     string
+	ImageURL string
 }
 
 type memoryDB struct {

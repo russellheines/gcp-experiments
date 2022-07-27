@@ -13,11 +13,21 @@
   <h2>Pet clinic</h2>
 
   {{range .}}
-  <p><a href="/detail/{{.ID}}">{{.Name}}</a></p>
+  <div class="media">
+    <!--
+    <div class="media-left">
+      <img src="{{if .ImageURL}}{{.ImageURL}}{{else}}https://placekitten.com/g/200/300{{end}}">
+    </div>
+    -->
+    <div class="media-body">
+      <h4><a href="/detail/{{.ID}}">{{.Name}}</a></h4>
+      <p>{{.Type}}</p>
+    </div>
+  </div>
   {{else}}
   <p>No pets found.</p>
   {{end}}
-
+  
   <a href="/add" class="btn btn-success btn-sm">
     <i class="glyphicon glyphicon-plus"></i>
     <span>Add pet</span>

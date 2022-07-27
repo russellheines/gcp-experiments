@@ -12,9 +12,15 @@
 <div class="container">
   <h2>Pet detail</h2>
 
-  <p>ID: {{.ID}}</p>
-  <p>Name: {{.Name}}</p>
-  <p>Type: {{.Type}}</p>
+  <div class="media">
+    <div class="media-left">
+      <img src="{{if .ImageURL}}{{.ImageURL}}{{else}}https://placekitten.com/g/200/300{{end}}">
+    </div>
+    <div class="media-body">
+      <h4>{{.Name}}</h4>
+      <p>{{.Type}}</p>
+    </div>
+  </div>
 
   <a href="/edit/{{.ID}}" class="btn btn-primary btn-sm">
     <i class="glyphicon glyphicon-edit"></i>

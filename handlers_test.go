@@ -1,10 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"strings"
 	"testing"
 )
@@ -15,11 +16,11 @@ func TestListHandler(t *testing.T) {
 	}
 
 	req := httptest.NewRequest("GET", "/", nil)
-	w := httptest.NewRecorder()
+	rec := httptest.NewRecorder()
 
-	pc.listHandler(w, req)
+	pc.listHandler(rec, req)
 
-	resp := w.Result()
+	resp := rec.Result()
 	body, _ := io.ReadAll(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
@@ -35,17 +36,18 @@ func TestAddHandler(t *testing.T) {
 		db: newMemoryDB(),
 	}
 
-	data := url.Values{}
-	data.Set("name", "Tom")
-	data.Set("type", "Fish")
+	buf := &bytes.Buffer{} // implements io.Reader and io.Writer
+	w := multipart.NewWriter(buf)
+	w.WriteField("name", "Tom")
+	w.Close()
 
-	req := httptest.NewRequest("POST", "/add", strings.NewReader(data.Encode()))
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	w := httptest.NewRecorder()
+	req := httptest.NewRequest("POST", "/add", buf)
+	req.Header.Add("Content-Type", w.FormDataContentType())
+	rec := httptest.NewRecorder()
 
-	pc.addHandler(w, req)
+	pc.addHandler(rec, req)
 
-	resp := w.Result()
+	resp := rec.Result()
 
 	if resp.StatusCode != http.StatusFound {
 		t.Error("expected redirect")
@@ -63,11 +65,11 @@ func TestDetailHandler(t *testing.T) {
 	pc.db.add(&Pet{Name: "Flippy Twitch", Type: "Fish"})
 
 	req := httptest.NewRequest("POST", "/detail/1", nil)
-	w := httptest.NewRecorder()
+	rec := httptest.NewRecorder()
 
-	pc.detailHandler(w, req)
+	pc.detailHandler(rec, req)
 
-	resp := w.Result()
+	resp := rec.Result()
 	body, _ := io.ReadAll(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
@@ -84,11 +86,11 @@ func TestDetailHandler_InternalServerError(t *testing.T) {
 	}
 
 	req := httptest.NewRequest("GET", "/detail/2", nil)
-	w := httptest.NewRecorder()
+	rec := httptest.NewRecorder()
 
-	pc.editHandler(w, req)
+	pc.editHandler(rec, req)
 
-	resp := w.Result()
+	resp := rec.Result()
 
 	if resp.StatusCode != http.StatusInternalServerError {
 		t.Error("expected internal server error")
@@ -102,17 +104,18 @@ func TestEditHandler(t *testing.T) {
 
 	pc.db.add(&Pet{Name: "Tom", Type: "Fish"})
 
-	data := url.Values{}
-	data.Set("name", "Flippy Twitch")
-	data.Set("type", "Fish")
+	buf := &bytes.Buffer{} // implements io.Reader and io.Writer
+	w := multipart.NewWriter(buf)
+	w.WriteField("name", "Flippy Twitch")
+	w.Close()
 
-	req := httptest.NewRequest("POST", "/edit/1", strings.NewReader(data.Encode()))
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	w := httptest.NewRecorder()
+	req := httptest.NewRequest("POST", "/edit/1", buf)
+	req.Header.Add("Content-Type", w.FormDataContentType())
+	rec := httptest.NewRecorder()
 
-	pc.editHandler(w, req)
+	pc.editHandler(rec, req)
 
-	resp := w.Result()
+	resp := rec.Result()
 
 	if resp.StatusCode != http.StatusFound {
 		t.Error("expected ok")
@@ -127,12 +130,18 @@ func TestEditHandler_InternalServerError(t *testing.T) {
 		db: newMemoryDB(),
 	}
 
-	req := httptest.NewRequest("POST", "/edit/2", nil)
-	w := httptest.NewRecorder()
+	buf := &bytes.Buffer{} // implements io.Reader and io.Writer
+	w := multipart.NewWriter(buf)
+	w.WriteField("name", "Flippy Twitch")
+	w.Close()
 
-	pc.editHandler(w, req)
+	req := httptest.NewRequest("POST", "/edit/2", buf)
+	req.Header.Add("Content-Type", w.FormDataContentType())
+	rec := httptest.NewRecorder()
 
-	resp := w.Result()
+	pc.editHandler(rec, req)
+
+	resp := rec.Result()
 
 	if resp.StatusCode != http.StatusInternalServerError {
 		t.Error("expected internal server error")

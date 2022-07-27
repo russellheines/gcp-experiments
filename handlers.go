@@ -11,6 +11,7 @@ func (pc *PetClinic) listHandler(w http.ResponseWriter, r *http.Request) {
 	t, err := template.ParseFiles("templates/list.html")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	t.Execute(w, pets)
@@ -22,11 +23,13 @@ func (pc *PetClinic) detailHandler(w http.ResponseWriter, r *http.Request) {
 	t, err := template.ParseFiles("templates/detail.html")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	pet, err := pc.db.get(id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	t.Execute(w, pet)
@@ -38,12 +41,20 @@ func (pc *PetClinic) addHandler(w http.ResponseWriter, r *http.Request) {
 		t, err := template.ParseFiles("templates/add.html")
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 		t.Execute(w, nil)
 	case "POST":
+		imageURL, uploadError := pc.uploadFileFromForm(r)
+		if uploadError != nil {
+			http.Error(w, uploadError.Error(), http.StatusInternalServerError)
+			return
+		}
+
 		pet := &Pet{
-			Name: r.FormValue("name"),
-			Type: r.FormValue("type"),
+			Name:     r.FormValue("name"),
+			Type:     r.FormValue("type"),
+			ImageURL: imageURL,
 		}
 		pc.db.add(pet)
 
@@ -56,6 +67,7 @@ func (pc *PetClinic) editHandler(w http.ResponseWriter, r *http.Request) {
 	pet, err := pc.db.get(id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	switch r.Method {
@@ -63,17 +75,27 @@ func (pc *PetClinic) editHandler(w http.ResponseWriter, r *http.Request) {
 		t, err := template.ParseFiles("templates/edit.html")
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 		t.Execute(w, pet)
 	case "POST":
-		pet := &Pet{
-			ID:   id,
-			Name: r.FormValue("name"),
-			Type: r.FormValue("type"),
+		imageURL, uploadError := pc.uploadFileFromForm(r)
+		if uploadError != nil {
+			http.Error(w, uploadError.Error(), http.StatusInternalServerError)
+			return
 		}
+
+		pet := &Pet{
+			ID:       id,
+			Name:     r.FormValue("name"),
+			Type:     r.FormValue("type"),
+			ImageURL: imageURL,
+		}
+
 		err := pc.db.edit(pet)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 
 		http.Redirect(w, r, "/", http.StatusFound)
