@@ -1,17 +1,11 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"sort"
 	"strconv"
 )
-
-type Pet struct {
-	ID       string
-	Name     string
-	Type     string
-	ImageURL string
-}
 
 type memoryDB struct {
 	nextID int64
@@ -25,7 +19,7 @@ func newMemoryDB() *memoryDB {
 	}
 }
 
-func (db *memoryDB) list() []*Pet {
+func (db *memoryDB) list(ctx context.Context) ([]*Pet, error) {
 
 	var pets []*Pet
 	for _, p := range db.pets {
@@ -36,16 +30,18 @@ func (db *memoryDB) list() []*Pet {
 		return pets[i].Name < pets[j].Name
 	})
 
-	return pets
+	return pets, nil
 }
 
-func (db *memoryDB) add(p *Pet) {
+func (db *memoryDB) add(ctx context.Context, p *Pet) error {
 	p.ID = strconv.FormatInt(db.nextID, 10)
 	db.pets[p.ID] = p
 	db.nextID++
+
+	return nil
 }
 
-func (db *memoryDB) get(id string) (*Pet, error) {
+func (db *memoryDB) get(ctx context.Context, id string) (*Pet, error) {
 	_, ok := db.pets[id]
 	if !ok {
 		return nil, errors.New("pet not found")
@@ -54,7 +50,7 @@ func (db *memoryDB) get(id string) (*Pet, error) {
 	return db.pets[id], nil
 }
 
-func (db *memoryDB) edit(p *Pet) error {
+func (db *memoryDB) edit(ctx context.Context, p *Pet) error {
 	if p.ID == "" {
 		return errors.New("missing pet id")
 	}

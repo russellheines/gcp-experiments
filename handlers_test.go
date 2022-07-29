@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -21,7 +22,10 @@ func TestListHandler(t *testing.T) {
 	pc.listHandler(rec, req)
 
 	resp := rec.Result()
-	body, _ := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Error(err)
+	}
 
 	if resp.StatusCode != http.StatusOK {
 		t.Error("expected ok")
@@ -52,7 +56,9 @@ func TestAddHandler(t *testing.T) {
 	if resp.StatusCode != http.StatusFound {
 		t.Error("expected redirect")
 	}
-	if len(pc.db.list()) != 1 {
+	if pets, err := pc.db.list(req.Context()); err != nil {
+		t.Error(err)
+	} else if len(pets) != 1 {
 		t.Error("expected one pet")
 	}
 }
@@ -62,7 +68,7 @@ func TestDetailHandler(t *testing.T) {
 		db: newMemoryDB(),
 	}
 
-	pc.db.add(&Pet{Name: "Flippy Twitch", Type: "Fish"})
+	pc.db.add(context.Background(), &Pet{Name: "Flippy Twitch", Type: "Fish"})
 
 	req := httptest.NewRequest("POST", "/detail/1", nil)
 	rec := httptest.NewRecorder()
@@ -70,7 +76,10 @@ func TestDetailHandler(t *testing.T) {
 	pc.detailHandler(rec, req)
 
 	resp := rec.Result()
-	body, _ := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Error(err)
+	}
 
 	if resp.StatusCode != http.StatusOK {
 		t.Error("expected ok")
@@ -102,7 +111,7 @@ func TestEditHandler(t *testing.T) {
 		db: newMemoryDB(),
 	}
 
-	pc.db.add(&Pet{Name: "Tom", Type: "Fish"})
+	pc.db.add(context.Background(), &Pet{Name: "Tom", Type: "Fish"})
 
 	buf := &bytes.Buffer{} // implements io.Reader and io.Writer
 	w := multipart.NewWriter(buf)
@@ -120,8 +129,10 @@ func TestEditHandler(t *testing.T) {
 	if resp.StatusCode != http.StatusFound {
 		t.Error("expected ok")
 	}
-	if p, _ := pc.db.get("1"); p.Name != "Flippy Twitch" {
-		t.Error("Flippy Twitch")
+	if p, err := pc.db.get(req.Context(), "1"); err != nil {
+		t.Error(err)
+	} else if p.Name != "Flippy Twitch" {
+		t.Error("expected \"Flippy Twitch\"")
 	}
 }
 

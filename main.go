@@ -13,10 +13,33 @@ import (
 )
 
 type PetClinic struct {
-	db *memoryDB
+	db PetDatabase
 
 	bktName string
 	bkt     *storage.BucketHandle
+}
+
+type Pet struct {
+	ID       string
+	Name     string
+	Type     string
+	ImageURL string
+}
+
+type PetDatabase interface {
+	list(ctx context.Context) ([]*Pet, error)
+	//ListBooks(context.Context) ([]*Book, error)
+
+	get(ctx context.Context, id string) (*Pet, error)
+	//GetBook(ctx context.Context, id string) (*Book, error)
+
+	add(ctx context.Context, p *Pet) error
+	//AddBook(ctx context.Context, b *Book) (id string, err error)
+
+	//DeleteBook(ctx context.Context, id string) error
+
+	edit(ctx context.Context, p *Pet) error
+	//UpdateBook(ctx context.Context, b *Book) error
 }
 
 func (pc *PetClinic) uploadFileFromForm(r *http.Request) (string, error) {
@@ -53,11 +76,11 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	bktName := "getting-started-337714_petclinic"
+	bktName := "getting-started-337714_bucket"
 	bkt := client.Bucket(bktName)
 
 	pc := &PetClinic{
-		db:      newMemoryDB(),
+		db:      newFirestoreDB(),
 		bktName: bktName,
 		bkt:     bkt,
 	}

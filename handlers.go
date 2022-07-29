@@ -6,7 +6,11 @@ import (
 )
 
 func (pc *PetClinic) listHandler(w http.ResponseWriter, r *http.Request) {
-	pets := pc.db.list()
+	pets, err := pc.db.list(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	t, err := template.ParseFiles("templates/list.html")
 	if err != nil {
@@ -26,7 +30,7 @@ func (pc *PetClinic) detailHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pet, err := pc.db.get(id)
+	pet, err := pc.db.get(r.Context(), id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -56,7 +60,7 @@ func (pc *PetClinic) addHandler(w http.ResponseWriter, r *http.Request) {
 			Type:     r.FormValue("type"),
 			ImageURL: imageURL,
 		}
-		pc.db.add(pet)
+		pc.db.add(r.Context(), pet)
 
 		http.Redirect(w, r, "/", http.StatusFound)
 	}
@@ -64,7 +68,7 @@ func (pc *PetClinic) addHandler(w http.ResponseWriter, r *http.Request) {
 
 func (pc *PetClinic) editHandler(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.Path[len("/edit/"):]
-	pet, err := pc.db.get(id)
+	pet, err := pc.db.get(r.Context(), id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -92,7 +96,7 @@ func (pc *PetClinic) editHandler(w http.ResponseWriter, r *http.Request) {
 			ImageURL: imageURL,
 		}
 
-		err := pc.db.edit(pet)
+		err := pc.db.edit(r.Context(), pet)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
