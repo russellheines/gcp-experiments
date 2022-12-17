@@ -1,4 +1,4 @@
-const name = 'projects/708733497091/secrets/github-oauth2-client-secret/versions/latest';
+const name = 'projects/708733497091/secrets/google-oauth2-client-secret/versions/latest';
 
 // Imports the Secret Manager library
 const {SecretManagerServiceClient} = require('@google-cloud/secret-manager');

@@ -16,4 +16,4 @@ References:
 
 * https://medium.com/@jackrobertscott/easy-github-auth-with-node-js-502d3d8f8e62
 
-* https://medium.com/authpack/easy-google-auth-with-node-js-99ac40b97f4c
+* https://medium.com/@jackrobertscott/easy-google-auth-with-node-js-99ac40b97f4c
