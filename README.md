@@ -6,6 +6,8 @@ Setup:
 
 * https://cloud.google.com/docs/authentication/application-default-credentials
 
+* https://cloud.google.com/python/docs/setup
+
 Bookshelf example:
 
 * https://cloud.google.com/python/docs/getting-started
