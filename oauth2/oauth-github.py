@@ -18,6 +18,7 @@ CLIENT_SECRET = os.getenv("GITHUB_SECRET")
 AUTHORIZATION_ENDPOINT = f"https://github.com/login/oauth/authorize?response_type=code&client_id={os.getenv('GITHUB_ID')}"
 TOKEN_ENDPOINT = "https://github.com/login/oauth/access_token"
 USER_ENDPOINT = "https://api.github.com/user"
+USERS_ENDPOINT = "https://api.github.com/users"
 
 
 """
@@ -51,6 +52,13 @@ token = res["access_token"][0]
 """
 Finally, we can use the access token to obtain information about the user.
 """
-user_data = requests.get(USER_ENDPOINT, headers=dict(Authorization=f"token {token}"))
-username = user_data.json()["login"]
-print(f"You are {username} on GitHub")
+user_data = requests.get(USER_ENDPOINT, headers=dict(Authorization=f"Bearer {token}"))
+login = user_data.json()["login"]
+print(f"You are {login} on GitHub")
+
+users_data = requests.get(USERS_ENDPOINT + "/" + login, headers=dict(Authorization=f"Bearer {token}"))
+name = users_data.json()["name"]
+print(f"You are {name} on GitHub")
+
+# https://docs.github.com/en/rest/users/users?apiVersion=2022-11-28#get-the-authenticated-user
+# https://docs.github.com/en/rest/users/users?apiVersion=2022-11-28#get-a-user

@@ -5,18 +5,17 @@ Import necessary modules.
 """
 import os
 import requests
-from urllib.parse import parse_qs
 
 
 """
-Define the GITHUB_ID and GITHUB_SECRET environment variables
+Define the GOOGLE_ID and GOOGLE_SECRET environment variables
 along with the endpoints.
 """
 CLIENT_ID = os.getenv("GOOGLE_ID")
 CLIENT_SECRET = os.getenv("GOOGLE_SECRET")
-AUTHORIZATION_ENDPOINT = f"https://accounts.google.com/o/oauth2/v2/auth?scope=https%3A//www.googleapis.com/auth/userinfo.email&redirect_uri=http%3A//127.0.0.1%3A5000/login/google/authorized&access_type=offline&response_type=code&client_id={os.getenv('GOOGLE_ID')}"
+AUTHORIZATION_ENDPOINT = f"https://accounts.google.com/o/oauth2/v2/auth?scope=https%3A//www.googleapis.com/auth/userinfo.email+https%3A//www.googleapis.com/auth/userinfo.profile&redirect_uri=http%3A//127.0.0.1%3A5000/login/google/authorized&access_type=offline&response_type=code&client_id={os.getenv('GOOGLE_ID')}"
 TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token"
-USER_ENDPOINT = "https://www.googleapis.com/oauth2/v2/userinfo"
+USERINFO_ENDPOINT = "https://www.googleapis.com/oauth2/v2/userinfo"
 
 
 """
@@ -51,8 +50,10 @@ token = data["access_token"]
 """
 Finally, we can use the access token to obtain information about the user.
 """
-user_data = requests.get(USER_ENDPOINT, headers=dict(Authorization=f"Bearer {token}"))
-print(user_data.content)
-print(user_data.status_code)
-username = user_data.json()["email"]
-print(f"You are {username} on Google")
+user_data = requests.get(USERINFO_ENDPOINT, headers=dict(Authorization=f"Bearer {token}"))
+email = user_data.json()["email"]
+print(f"You are {email} on Google")
+name = user_data.json()["name"]
+print(f"You are {name} on Google")
+
+# https://developers.google.com/identity/protocols/oauth2/scopes#oauth2

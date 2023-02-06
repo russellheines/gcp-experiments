@@ -12,14 +12,12 @@ Bookshelf example:
 
 * https://cloud.google.com/python/docs/getting-started
 
-Authentication examples (in progress!):
+Sessions:
 
-* https://cloud.google.com/python/docs/getting-started/authenticate-users
+* https://cloud.google.com/python/docs/getting-started/session-handling-with-firestore
 
-* https://cloud.google.com/iap/docs/authenticate-users-external-identities
-  
+Authentication (in progress!):
+
 * https://testdriven.io/blog/flask-social-auth/
 
 * https://testdriven.io/authors/shaji/
-
-* https://cloud.google.com/secret-manager/docs
