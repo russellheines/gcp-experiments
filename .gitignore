@@ -1,4 +1,8 @@
+# NodeJS
+node_modules/
+
 # Python
+env/
 __pycache__
 .pytest_cache
 
