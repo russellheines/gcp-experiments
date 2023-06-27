@@ -52,7 +52,3 @@ def test_invocations():
     assert message['Language'] == 'de'
     assert len(message['Translated']) > 0
     assert message['OriginalLanguage'] == 'en'
-
-    print('ok?')
-
-print('ok')
