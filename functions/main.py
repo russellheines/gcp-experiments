@@ -6,6 +6,7 @@ import functions_framework
 import chess
 import random
 import ast
+import sys
 
 from google.cloud import firestore
 
@@ -58,7 +59,10 @@ def subscribe(cloud_event: CloudEvent) -> None:
         db.collection("one-player-positions").add(position)    
 
 if __name__ == "__main__":
-    request = ast.literal_eval("{'gameId': '100', 'fen': 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'}")
-    response = handleRequest(request)
-    if response:
-        print (response)
+    if (len(sys.argv) > 1):
+        request = ast.literal_eval(sys.argv[1])
+        response = handleRequest(request)
+        if response:
+            print (response)
+    else:
+        print ("Missing inputs")
