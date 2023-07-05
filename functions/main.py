@@ -12,9 +12,82 @@ from google.cloud import firestore
 
 db = firestore.Client()
 
-def generateMove(board):
-    i = random.randint(0, board.legal_moves.count()-1)
-    move = list(board.legal_moves)[i]
+# white = 1
+# black = -1
+def evaluate(board, color):
+    value = 0
+
+    fen = board.fen()
+    for i in range (len(fen)):
+        x = fen[i:i+1]
+        if x == 'p':
+            value -= 1
+        elif x == 'n':
+            value -= 3
+        elif x == 'b':
+            value -= 3
+        elif x == 'r':
+            value -= 5
+        elif x == 'q':
+            value -= 9
+        elif x == 'P':
+            value += 1
+        elif x == 'N':
+            value += 3
+        elif x == 'B':
+            value += 3
+        elif x == 'R':
+            value += 5
+        elif x == 'Q':
+            value += 9
+        elif x == ' ':
+            break
+
+    return value * color
+
+def negaMaxRoot(depth, board, color):
+    if depth == 0:
+        return []
+
+    moves = []
+    max = -100
+
+    for move in board.legal_moves:
+        board.push(move)
+        score = -negaMax(depth-1, board, -color)
+        board.pop()
+        if score > max:
+            moves = []
+            moves.append(move)
+            max = score
+        elif score == max:
+            moves.append(move)
+
+    return moves
+
+def negaMax(depth, board, color):
+    if depth == 0:
+        return evaluate(board, color)
+    max = -100    
+    for move in board.legal_moves:
+        board.push(move)
+        score = -negaMax(depth-1, board, -color)
+        board.pop()
+        if score > max:
+            max = score
+    return max
+
+def generateMove(board):    
+    #i = random.randint(0, board.legal_moves.count()-1)
+    #move = list(board.legal_moves)[i]
+
+    if (board.turn == chess.WHITE):
+        color = 1
+    else:
+        color = -1
+    moves = negaMaxRoot(2, board, color)
+    i = random.randint(0, len(moves)-1)
+    move = moves[i]
 
     return move
 
