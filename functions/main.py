@@ -165,7 +165,7 @@ def subscribe(cloud_event: CloudEvent) -> None:
 
     if response:
         position = {"gameId": request["gameId"], "timestamp": firestore.SERVER_TIMESTAMP, "fen": response["fen"], "lastMove": response["lastMove"]}
-        db.collection("one-player-positions").add(position)    
+        db.collection("lets-play-positions").add(position)    
 
 if __name__ == "__main__":
     if (len(sys.argv) > 1):
