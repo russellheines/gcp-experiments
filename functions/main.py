@@ -77,6 +77,41 @@ def negaMax(depth, board, color):
             max = score
     return max
 
+def alphaBetaRoot(depth, board, color):
+    if depth == 0:
+        return []
+
+    moves = []
+    alpha = -100
+    beta = 100
+
+    for move in board.legal_moves:
+        board.push(move)
+        score = -alphaBeta(depth-1, board, -color, alpha, beta)
+        board.pop()
+        if score > alpha:
+            moves = []
+            moves.append(move)
+            alpha = score
+        elif score == alpha:
+            moves.append(move)
+
+    return moves
+
+def alphaBeta(depth, board, color, alpha, beta):
+    if depth == 0:
+        return evaluate(board, color)
+    for move in board.legal_moves:
+        board.push(move)
+        score = -alphaBeta(depth-1, board, -color, -alpha, -beta)
+        board.pop()
+        if score >= beta:
+            return beta  # fail hard beta-cutoff
+        if score > alpha:
+            alpha = score;  # alpha acts like max in MiniMax
+
+    return alpha
+
 def generateMove(board):    
     #i = random.randint(0, board.legal_moves.count()-1)
     #move = list(board.legal_moves)[i]
@@ -85,7 +120,8 @@ def generateMove(board):
         color = 1
     else:
         color = -1
-    moves = negaMaxRoot(2, board, color)
+    #moves = negaMaxRoot(2, board, color)
+    moves = alphaBetaRoot(2, board, color)
     i = random.randint(0, len(moves)-1)
     move = moves[i]
 
