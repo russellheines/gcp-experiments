@@ -45,70 +45,79 @@ def evaluate(board, color):
 
     return value * color
 
-def negaMaxRoot(depth, board, color):
+def minimax_root(depth, board, color):
     if depth == 0:
-        return []
+        return [], evaluate(board, color)
 
+    bestscore = -999
     moves = []
-    max = -100
-
     for move in board.legal_moves:
         board.push(move)
-        score = -negaMax(depth-1, board, -color)
+        score = -minimax(depth-1, board, -color)
         board.pop()
-        if score > max:
+        
+        print('evaluated ' + board.san(move) + ' => ' + str(score))
+
+        if score > bestscore:
             moves = []
             moves.append(move)
-            max = score
-        elif score == max:
+            bestscore = score
+        elif score == bestscore:
             moves.append(move)
 
-    return moves
+    return moves, bestscore
 
-def negaMax(depth, board, color):
+def minimax(depth, board, color):
     if depth == 0:
         return evaluate(board, color)
-    max = -100    
+
+    max = -999
     for move in board.legal_moves:
         board.push(move)
-        score = -negaMax(depth-1, board, -color)
+        score = -minimax(depth-1, board, -color)
         board.pop()
+
+        #print('  evaluated ' + board.san(move) + ' => ' + str(score))
+
         if score > max:
             max = score
+
     return max
 
-def alphaBetaRoot(depth, board, color):
+def alphabeta_root(depth, board, color):
     if depth == 0:
-        return []
+        return [], evaluate(board, color)
 
+    bestscore = -999
     moves = []
-    alpha = -100
-    beta = 100
-
     for move in board.legal_moves:
         board.push(move)
-        score = -alphaBeta(depth-1, board, -color, alpha, beta)
+        score = -alphabeta(depth-1, board, -color, -999, 999)
         board.pop()
-        if score > alpha:
+        
+        print('evaluated ' + board.san(move) + ' => ' + str(score))
+
+        if score > bestscore:
             moves = []
             moves.append(move)
-            alpha = score
-        elif score == alpha:
+            bestscore = score
+        elif score == bestscore:
             moves.append(move)
 
-    return moves
+    return moves, bestscore
 
-def alphaBeta(depth, board, color, alpha, beta):
+def alphabeta(depth, board, color, alpha, beta):
     if depth == 0:
         return evaluate(board, color)
+        
     for move in board.legal_moves:
         board.push(move)
-        score = -alphaBeta(depth-1, board, -color, -alpha, -beta)
+        score = -alphabeta(depth-1, board, -color, -beta, -alpha)
         board.pop()
         if score >= beta:
-            return beta  # fail hard beta-cutoff
+            return beta
         if score > alpha:
-            alpha = score;  # alpha acts like max in MiniMax
+            alpha = score
 
     return alpha
 
@@ -120,8 +129,7 @@ def generateMove(board):
         color = 1
     else:
         color = -1
-    #moves = negaMaxRoot(2, board, color)
-    moves = alphaBetaRoot(2, board, color)
+    moves, _ = minimax_root(2, board, color)
     i = random.randint(0, len(moves)-1)
     move = moves[i]
 
@@ -144,6 +152,8 @@ def handleRequest(request):
         return
 
     move = generateMove(board)
+
+    print(move)
 
     response = {}
     response["lastMove"] = {}
@@ -168,6 +178,22 @@ def subscribe(cloud_event: CloudEvent) -> None:
         db.collection("lets-play-positions").add(position)    
 
 if __name__ == "__main__":
+
+    board = chess.Board()
+    board.set_fen("rnbqkbnr/pppp1ppp/8/4p3/3P4/8/PPP1PPPP/RNBQKBNR w KQkq - 0 1")
+    #moves, score = alphabeta(2, board, 1)
+    # white can capture a pawn, but would lose a knight
+    #board.set_fen("r3k3/8/N7/8/8/8/5P1P/7K w KQkq - 0 1")
+    print(board)
+    moves, score = minimax_root(4, board, 1)
+    print(len(moves))
+    print(moves)
+    print(board)
+    moves, score = alphabeta_root(4, board, 1)
+    print(len(moves))
+    print(moves)
+    
+'''
     if (len(sys.argv) > 1):
         request = ast.literal_eval(sys.argv[1])
         response = handleRequest(request)
@@ -175,3 +201,4 @@ if __name__ == "__main__":
             print (response)
     else:
         print ("Missing inputs")
+'''
