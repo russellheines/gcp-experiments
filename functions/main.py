@@ -12,8 +12,15 @@ from google.cloud import firestore
 
 db = firestore.Client()
 
-# white = 1
-# black = -1
+WHITE = 1
+BLACK = -1
+
+def move_randomly(board):
+    i = random.randint(0, board.legal_moves.count()-1)
+    move = list(board.legal_moves)[i]
+
+    return move
+
 def evaluate(board, color):
     value = 0
 
@@ -44,6 +51,26 @@ def evaluate(board, color):
             break
 
     return value * color
+
+def quiesce(board, color, alpha, beta):
+    stand_pat = evaluate(board, color)
+    if stand_pat >= beta:
+        return beta
+    if  alpha < stand_pat:
+        alpha = stand_pat
+
+    for move in board.legal_moves:
+        if board.is_capture(move):
+            board.push(move)
+            score = -quiesce(board, -color, -beta, -alpha)
+            board.pop()
+
+            if score >= beta:
+                return beta
+            if score > alpha:
+                alpha = score
+  
+    return alpha
 
 def minimax_root(depth, board, color):
     if depth == 0:
@@ -77,8 +104,6 @@ def minimax(depth, board, color):
         score = -minimax(depth-1, board, -color)
         board.pop()
 
-        #print('  evaluated ' + board.san(move) + ' => ' + str(score))
-
         if score > max:
             max = score
 
@@ -108,6 +133,7 @@ def alphabeta_root(depth, board, color):
 
 def alphabeta(depth, board, color, alpha, beta):
     if depth == 0:
+        #return quiesce(board, color, alpha, beta)
         return evaluate(board, color)
         
     for move in board.legal_moves:
@@ -122,20 +148,10 @@ def alphabeta(depth, board, color, alpha, beta):
     return alpha
 
 def generateMove(board):    
-    #i = random.randint(0, board.legal_moves.count()-1)
-    #move = list(board.legal_moves)[i]
-
-    if (board.turn == chess.WHITE):
-        color = 1
-    else:
-        color = -1
-    moves, _ = minimax_root(2, board, color)
-    i = random.randint(0, len(moves)-1)
-    move = moves[i]
 
     return move
 
-def handleRequest(request):
+def handle_request(request):
     if "gameId" not in request:
         print("Missing gameId")
         return
@@ -151,7 +167,17 @@ def handleRequest(request):
         print("Invalid fen: " + request["fen"])
         return
 
-    move = generateMove(board)
+    if board.legal_moves.count() == 0:
+        print("No legal moves")
+        return
+
+    if (board.turn == chess.WHITE):
+        color = 1
+    else:
+        color = -1
+    moves, _ = alphabeta_root(2, board, color)
+    i = random.randint(0, len(moves)-1)
+    move = moves[i]
 
     print(move)
 
@@ -171,7 +197,7 @@ def handleRequest(request):
 def subscribe(cloud_event: CloudEvent) -> None:
     data = base64.b64decode(cloud_event.data["message"]["data"]).decode()
     request = ast.literal_eval(data)
-    response = handleRequest(request)
+    response = handle_request(request)
 
     if response:
         position = {"gameId": request["gameId"], "timestamp": firestore.SERVER_TIMESTAMP, "fen": response["fen"], "lastMove": response["lastMove"]}
@@ -180,23 +206,30 @@ def subscribe(cloud_event: CloudEvent) -> None:
 if __name__ == "__main__":
 
     board = chess.Board()
-    board.set_fen("rnbqkbnr/pppp1ppp/8/4p3/3P4/8/PPP1PPPP/RNBQKBNR w KQkq - 0 1")
-    #moves, score = alphabeta(2, board, 1)
+
     # white can capture a pawn, but would lose a knight
-    #board.set_fen("r3k3/8/N7/8/8/8/5P1P/7K w KQkq - 0 1")
+
+    board.set_fen("rnbqkbnr/ppp2ppp/3p4/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 0 1")
     print(board)
-    moves, score = minimax_root(4, board, 1)
-    print(len(moves))
-    print(moves)
-    print(board)
-    moves, score = alphabeta_root(4, board, 1)
+    print("start: " + str(evaluate(board, WHITE)))
+    moves, score = minimax_root(1, board, WHITE)
     print(len(moves))
     print(moves)
     
+    board.set_fen("rnbqkbnr/ppp2ppp/3p4/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 0 1")
+    print(board)
+    print("start: " + str(evaluate(board, WHITE)))
+    moves, score = alphabeta_root(1, board, WHITE)
+    print(len(moves))
+    print(moves)
+    
+    board.set_fen("rnbqkbnr/ppp2ppp/3p4/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 0 1")
+    print(move_randomly(board))
+
 '''
     if (len(sys.argv) > 1):
         request = ast.literal_eval(sys.argv[1])
-        response = handleRequest(request)
+        response = handle_request(request)
         if response:
             print (response)
     else:
