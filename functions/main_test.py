@@ -2,13 +2,6 @@ import chess
 
 from main import * 
 
-def test_generateMove():
-    board = chess.Board()
-    move = generateMove(board)
-
-    assert move is not None
-    assert move in board.legal_moves
-
 def test_evaluate():
     # initial position, value is 0
     board = chess.Board()
@@ -99,22 +92,22 @@ def test_alphabeta():
     board.set_fen("rnbqkbnr/ppp2ppp/3p4/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 0 1")
     moves, score = alphabeta_root(1, board, 1)
     # w/o quiesce search
-    #assert 1 == score
-    #assert 1 == len(moves)
-    #assert 'Nxe5' == board.san(moves[0])
+    assert 1 == score
+    assert 1 == len(moves)
+    assert 'Nxe5' == board.san(moves[0])
     # w/ quiesce search
-    assert 0 == score
-    assert 21 == len(moves)
-    assert 'Nxe5' != board.san(moves[0]) # need to check all 18
+    #assert 0 == score
+    #assert 21 == len(moves)
+    #assert 'Nxe5' != board.san(moves[0]) # need to check all 18
     moves, score = alphabeta_root(2, board, 1)
     # w/o quiesce search
-    #assert 0 == score
-    #assert 18 == len(moves)
-    #assert 'Nxe5' != board.san(moves[0]) # need to check all 18
-    # w/ quiesce search
     assert 0 == score
-    assert 21 == len(moves) # not 18?
+    assert 18 == len(moves)
     assert 'Nxe5' != board.san(moves[0]) # need to check all 18
+    # w/ quiesce search
+    #assert 0 == score
+    #assert 21 == len(moves) # not 18?
+    #assert 'Nxe5' != board.san(moves[0]) # need to check all 18
 
     # lichess - absolute pin #1
     board.set_fen("7k/8/8/4n3/4P3/8/8/6BK w KQkq - 0 1")
@@ -141,22 +134,8 @@ def test_alphabeta():
     board.set_fen("6k1/5r1p/p2N4/nppP2q1/2P5/1P2N3/PQ5P/7K w KQkq - 0 1")
     moves, score = alphabeta_root(4, board, 1)
     # depth = 4 w/o quiesce search
-    #assert 0 == score
-    #assert 'Nxf7' == board.san(moves[0])
+    assert 0 == score
+    assert 'Nxf7' == board.san(moves[0])
     # depth = 4 w/ quiesce search
-    assert 1 == len(moves)
-    assert 'Qh8+' == board.san(moves[0])
-
-
-def test_generateMove():
-    # initial position, all 20 possible moves are equal
-    board = chess.Board()
-    assert generateMove(board) is not None
-
-    # white can capture a hanging pawn
-    board.set_fen("rnbqkbnr/pppp1ppp/8/4p3/3P4/8/PPP1PPPP/RNBQKBNR w KQkq - 0 1")
-    assert 'dxe5' == board.san(generateMove(board))
-
-    # white can capture a pawn, but would lose a knight
-    board.set_fen("rnbqkbnr/ppp2ppp/3p4/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 0 1")
-    assert 'Nxe5' != board.san(generateMove(board))
+    #assert 1 == len(moves)
+    #assert 'Qh8+' == board.san(moves[0])

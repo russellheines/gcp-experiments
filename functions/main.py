@@ -1,12 +1,13 @@
+import ast
 import base64
+import chess
+import chess.pgn
+import io
+import random
+import sys
 
 from cloudevents.http import CloudEvent
 import functions_framework
-
-import chess
-import random
-import ast
-import sys
 
 from google.cloud import firestore
 
@@ -147,24 +148,52 @@ def alphabeta(depth, board, color, alpha, beta):
 
     return alpha
 
-def generateMove(board):    
+def pgn_to_board(pgn_string):
+    pgn = io.StringIO(pgn_string)
+    game = chess.pgn.read_game(pgn)
 
-    return move
+    if game:
+        board = game.end().board()
+    else:
+        board = chess.Board()
 
-def handle_request(request):
+    #print(board)
+
+    return board
+
+def board_to_pgn(board):
+    exporter = chess.pgn.StringExporter(headers=False, variations=False, comments=False)
+    game = chess.pgn.Game.from_board(board)
+    pgn_string = game.accept(exporter)
+
+    #print(pgn_string)
+
+    return pgn_string
+
+def get_pgn(game_id):
+    game_ref = db.collection("lets-play-chess").document(game_id)  # TODO: query
+    pgn_string = game_ref.get().to_dict()['pgn']
+
+    #print(pgn_string)
+
+    return pgn_string
+
+def set_pgn(game_id, pgn_string):
+    game_ref = db.collection("lets-play-chess").document(game_id)  # TODO: query
+    game_ref.update({"pgn": pgn_string})
+
+    #print(pgn_string)
+
+def process_request(request):
     if "gameId" not in request:
         print("Missing gameId")
         return
 
-    if "fen" not in request:
-        print("Missing fen")
-        return
-
-    board = chess.Board()
+    game_id = request["gameId"]
     try:
-        board.set_fen(request["fen"])
+        board = pgn_to_board(get_pgn(game_id))
     except:
-        print("Invalid fen: " + request["fen"])
+        print("Error getting pgn for " + game_id)
         return
 
     if board.legal_moves.count() == 0:
@@ -175,63 +204,48 @@ def handle_request(request):
         color = 1
     else:
         color = -1
+
     moves, _ = alphabeta_root(2, board, color)
     i = random.randint(0, len(moves)-1)
     move = moves[i]
 
-    print(move)
+    # e2e4
+    uci = chess.square_name(move.from_square) + chess.square_name(move.to_square)
+    board.push(chess.Move.from_uci(uci))
 
-    response = {}
-    response["lastMove"] = {}
-    response["lastMove"]["from"] = chess.square_name(move.from_square)
-    response["lastMove"]["to"] = chess.square_name(move.to_square)
-    response["lastMove"]["san"] = board.san(move)
-
-    board.push(move)
-
-    response["fen"] = board.fen()
-
-    return response
-
+    try:
+        set_pgn(game_id, board_to_pgn(board))
+    except:
+        print("Error setting pgn for " + game_id)
+    
 @functions_framework.cloud_event
 def subscribe(cloud_event: CloudEvent) -> None:
     data = base64.b64decode(cloud_event.data["message"]["data"]).decode()
     request = ast.literal_eval(data)
-    response = handle_request(request)
-
-    if response:
-        position = {"gameId": request["gameId"], "timestamp": firestore.SERVER_TIMESTAMP, "fen": response["fen"], "lastMove": response["lastMove"]}
-        db.collection("lets-play-positions").add(position)    
+    process_request(request)
 
 if __name__ == "__main__":
+    '''
+    pgn_to_board("1. e4 e5 2. Nf3 *")
+    pgn_to_board("*")
 
     board = chess.Board()
+    board.push(chess.Move.from_uci("e2e4"))
+    board.push(chess.Move.from_uci("e7e5"))
+    board_to_pgn(board)
+    board_to_pgn(chess.Board())
 
-    # white can capture a pawn, but would lose a knight
+    get_pgn("dac4a2bb-189d-480b-8fdd-0105e3db3609")
 
-    board.set_fen("rnbqkbnr/ppp2ppp/3p4/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 0 1")
-    print(board)
-    print("start: " + str(evaluate(board, WHITE)))
-    moves, score = minimax_root(1, board, WHITE)
-    print(len(moves))
-    print(moves)
-    
-    board.set_fen("rnbqkbnr/ppp2ppp/3p4/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 0 1")
-    print(board)
-    print("start: " + str(evaluate(board, WHITE)))
-    moves, score = alphabeta_root(1, board, WHITE)
-    print(len(moves))
-    print(moves)
-    
-    board.set_fen("rnbqkbnr/ppp2ppp/3p4/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 0 1")
-    print(move_randomly(board))
+    set_pgn("dac4a2bb-189d-480b-8fdd-0105e3db3609", "1. e4 e5 2. Nf3 *")
+    request = {}
+    request["gameId"] = "dac4a2bb-189d-480b-8fdd-0105e3db3609"
+    process_request(request)
+    '''
 
-'''
+    # python main.py "{\"gameId\": \"dac4a2bb-189d-480b-8fdd-0105e3db3609\"}"
     if (len(sys.argv) > 1):
         request = ast.literal_eval(sys.argv[1])
-        response = handle_request(request)
-        if response:
-            print (response)
+        process_request(request)
     else:
         print ("Missing inputs")
-'''
