@@ -1,26 +1,13 @@
 import ast
 import base64
 import chess
-import chess.pgn
-import io
 import random
 import sys
 
 from cloudevents.http import CloudEvent
 import functions_framework
 
-from google.cloud import firestore
-
-db = firestore.Client()
-
-WHITE = 1
-BLACK = -1
-
-def move_randomly(board):
-    i = random.randint(0, board.legal_moves.count()-1)
-    move = list(board.legal_moves)[i]
-
-    return move
+import utils
 
 def evaluate(board, color):
     value = 0
@@ -148,42 +135,6 @@ def alphabeta(depth, board, color, alpha, beta):
 
     return alpha
 
-def pgn_to_board(pgn_string):
-    pgn = io.StringIO(pgn_string)
-    game = chess.pgn.read_game(pgn)
-
-    if game:
-        board = game.end().board()
-    else:
-        board = chess.Board()
-
-    #print(board)
-
-    return board
-
-def board_to_pgn(board):
-    exporter = chess.pgn.StringExporter(headers=False, variations=False, comments=False)
-    game = chess.pgn.Game.from_board(board)
-    pgn_string = game.accept(exporter)
-
-    #print(pgn_string)
-
-    return pgn_string
-
-def get_pgn(game_id):
-    game_ref = db.collection("lets-play-chess").document(game_id)  # TODO: query
-    pgn_string = game_ref.get().to_dict()['pgn']
-
-    #print(pgn_string)
-
-    return pgn_string
-
-def set_pgn(game_id, pgn_string):
-    game_ref = db.collection("lets-play-chess").document(game_id)  # TODO: query
-    game_ref.update({"pgn": pgn_string})
-
-    #print(pgn_string)
-
 def process_request(request):
     if "gameId" not in request:
         print("Missing gameId")
@@ -191,7 +142,7 @@ def process_request(request):
 
     game_id = request["gameId"]
     try:
-        board = pgn_to_board(get_pgn(game_id))
+        board = utils.pgn_to_board(utils.get_pgn(game_id))
     except:
         print("Error getting pgn for " + game_id)
         return
@@ -214,7 +165,7 @@ def process_request(request):
     board.push(chess.Move.from_uci(uci))
 
     try:
-        set_pgn(game_id, board_to_pgn(board))
+        utils.set_pgn(game_id, utils.board_to_pgn(board))
     except:
         print("Error setting pgn for " + game_id)
     
