@@ -71,7 +71,7 @@ def minimax_root(depth, board, color):
         score = -minimax(depth-1, board, -color)
         board.pop()
         
-        print('evaluated ' + board.san(move) + ' => ' + str(score))
+        #print('evaluated ' + board.san(move) + ' => ' + str(score))
 
         if score > bestscore:
             moves = []
@@ -108,7 +108,7 @@ def alphabeta_root(depth, board, color):
         score = -alphabeta(depth-1, board, -color, -999, 999)
         board.pop()
         
-        print('evaluated ' + board.san(move) + ' => ' + str(score))
+        #print('evaluated ' + board.san(move) + ' => ' + str(score))
 
         if score > bestscore:
             moves = []
@@ -135,9 +135,13 @@ def alphabeta(depth, board, color, alpha, beta):
 
     return alpha
 
-def process_request(request):
+def process(request):
     if "gameId" not in request:
         print("Missing gameId")
+        return
+
+    if "color" not in request:
+        print("Missing color")
         return
 
     game_id = request["gameId"]
@@ -145,6 +149,12 @@ def process_request(request):
         board = utils.pgn_to_board(utils.get_pgn(game_id))
     except:
         print("Error getting pgn for " + game_id)
+        return
+    
+    print("Processing gameId: " + request["gameId"] + ", color: " + str(request["color"]))
+
+    if (request["color"] == 0 and board.turn == chess.BLACK) or (request["color"] == 1 and board.turn == chess.WHITE):
+        print("Wrong color")
         return
 
     if board.legal_moves.count() == 0:
@@ -156,7 +166,7 @@ def process_request(request):
     else:
         color = -1
 
-    moves, _ = alphabeta_root(2, board, color)
+    moves, _ = alphabeta_root(3, board, color)
     i = random.randint(0, len(moves)-1)
     move = moves[i]
 
@@ -173,30 +183,11 @@ def process_request(request):
 def subscribe(cloud_event: CloudEvent) -> None:
     data = base64.b64decode(cloud_event.data["message"]["data"]).decode()
     request = ast.literal_eval(data)
-    process_request(request)
+    process(request)
 
 if __name__ == "__main__":
-    '''
-    pgn_to_board("1. e4 e5 2. Nf3 *")
-    pgn_to_board("*")
-
-    board = chess.Board()
-    board.push(chess.Move.from_uci("e2e4"))
-    board.push(chess.Move.from_uci("e7e5"))
-    board_to_pgn(board)
-    board_to_pgn(chess.Board())
-
-    get_pgn("dac4a2bb-189d-480b-8fdd-0105e3db3609")
-
-    set_pgn("dac4a2bb-189d-480b-8fdd-0105e3db3609", "1. e4 e5 2. Nf3 *")
-    request = {}
-    request["gameId"] = "dac4a2bb-189d-480b-8fdd-0105e3db3609"
-    process_request(request)
-    '''
-
-    # python main.py "{\"gameId\": \"dac4a2bb-189d-480b-8fdd-0105e3db3609\"}"
     if (len(sys.argv) > 1):
         request = ast.literal_eval(sys.argv[1])
-        process_request(request)
+        process(request)
     else:
-        print ("Missing inputs")
+        print("Missing inputs")

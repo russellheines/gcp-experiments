@@ -12,7 +12,7 @@ import utils
 subscriber = pubsub_v1.SubscriberClient()
 # The `subscription_path` method creates a fully qualified identifier
 # in the form `projects/{project_id}/subscriptions/{subscription_id}`
-subscription_path = subscriber.subscription_path("getting-started-337714", "my-sub")
+subscription_path = subscriber.subscription_path("getting-started-337714", "local-sub")
 
 def callback(message: pubsub_v1.subscriber.message.Message) -> None:
     print(f"Received {message}.")
