@@ -7,7 +7,7 @@ from google.cloud import pubsub_v1
 publisher = pubsub_v1.PublisherClient()
 # The `topic_path` method creates a fully qualified identifier
 # in the form `projects/{project_id}/topics/{topic_id}`
-topic_path = publisher.topic_path("getting-started-337714", "my-topic")
+topic_path = publisher.topic_path("getting-started-337714", "local-topic")
 
 for n in range(1, 10):
     data_str = f"Message number {n}"
