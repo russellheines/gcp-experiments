@@ -121,8 +121,8 @@ def alphabeta_root(depth, board, color):
 
 def alphabeta(depth, board, color, alpha, beta):
     if depth == 0:
-        #return quiesce(board, color, alpha, beta)
-        return evaluate(board, color)
+        return quiesce(board, color, alpha, beta)
+        #return evaluate(board, color)
         
     for move in board.legal_moves:
         board.push(move)
@@ -166,7 +166,7 @@ def process(request):
     else:
         color = -1
 
-    moves, _ = alphabeta_root(3, board, color)
+    moves, _ = alphabeta_root(2, board, color)
     i = random.randint(0, len(moves)-1)
     move = moves[i]
 
