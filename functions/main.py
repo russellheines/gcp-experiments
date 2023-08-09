@@ -3,12 +3,16 @@ import base64
 import chess
 import random
 import sys
+import time
 
 from cloudevents.http import CloudEvent
 import functions_framework
 
 import utils
 
+'''
+Simplest possible evaluation function.  Just counts up the value of the pieces on the board.
+'''
 def evaluate(board, color):
     value = 0
 
@@ -40,26 +44,118 @@ def evaluate(board, color):
 
     return value * color
 
-def quiesce(board, color, alpha, beta):
+'''
+Quiescence search with no optimizations.  Very slow!
+'''
+def quiesce_slow(board, color, alpha, beta, quiesce_counter=0):
+    quiesce_counter += 1
+
     stand_pat = evaluate(board, color)
     if stand_pat >= beta:
-        return beta
+        return beta, quiesce_counter
     if  alpha < stand_pat:
         alpha = stand_pat
 
     for move in board.legal_moves:
         if board.is_capture(move):
             board.push(move)
-            score = -quiesce(board, -color, -beta, -alpha)
+            neg_score, quiesce_counter = quiesce_slow(board, -color, -beta, -alpha, quiesce_counter)
+            score = -neg_score
             board.pop()
 
             if score >= beta:
-                return beta
+                return beta, quiesce_counter
             if score > alpha:
                 alpha = score
   
-    return alpha
+    return alpha, quiesce_counter
 
+def value_of(board, square):
+    match board.piece_type_at(square):
+        case chess.PAWN:
+            return 1
+        case chess.KNIGHT:
+            return 3
+        case chess.BISHOP:
+            return 3
+        case chess.ROOK:
+            return 5
+        case chess.QUEEN:
+            return 9
+        case _:
+            return 18
+
+'''
+Quiescence search with capture ordering.
+'''
+def quiesce_ordered(board, color, alpha, beta, quiesce_counter=0):
+    quiesce_counter += 1
+    
+    stand_pat = evaluate(board, color)
+    if stand_pat >= beta:
+        return beta, quiesce_counter
+    if  alpha < stand_pat:
+        alpha = stand_pat
+
+    capture_moves = []
+    for move in board.legal_moves:
+        if board.is_capture(move):
+            capture_moves.append(move)
+
+    ordered_capture_moves = sorted(capture_moves, key=lambda move: value_of(board, move.to_square) - value_of(board, move.from_square), reverse = True)
+
+    for move in ordered_capture_moves:
+        board.push(move)
+        neg_score, quiesce_counter = quiesce_ordered(board, -color, -beta, -alpha, quiesce_counter)
+        score = -neg_score
+        board.pop()
+
+        if score >= beta:
+            return beta, quiesce_counter
+        if score > alpha:
+            alpha = score
+  
+    return alpha, quiesce_counter
+    
+'''
+Quiescence search with capture ordering and a depth limit.
+'''
+def quiesce(depth, board, color, alpha, beta, quiesce_counter=0):
+    quiesce_counter += 1
+    
+    stand_pat = evaluate(board, color)
+
+    if depth == 0:
+        return stand_pat, quiesce_counter
+
+    if stand_pat >= beta:
+        return beta, quiesce_counter
+    if  alpha < stand_pat:
+        alpha = stand_pat
+
+    capture_moves = []
+    for move in board.legal_moves:
+        if board.is_capture(move):
+            capture_moves.append(move)
+
+    ordered_capture_moves = sorted(capture_moves, key=lambda move: value_of(board, move.to_square) - value_of(board, move.from_square), reverse = True)
+
+    for move in ordered_capture_moves:
+        board.push(move)
+        neg_score, quiesce_counter = quiesce(depth-1, board, -color, -beta, -alpha, quiesce_counter)
+        score = -neg_score
+        board.pop()
+
+        if score >= beta:
+            return beta, quiesce_counter
+        if score > alpha:
+            alpha = score
+  
+    return alpha, quiesce_counter
+
+'''
+Minimax search.
+'''
 def minimax_root(depth, board, color):
     if depth == 0:
         return [], evaluate(board, color)
@@ -71,7 +167,7 @@ def minimax_root(depth, board, color):
         score = -minimax(depth-1, board, -color)
         board.pop()
         
-        #print('evaluated ' + board.san(move) + ' => ' + str(score))
+        print('evaluated ' + board.san(move) + ' => ' + str(score))
 
         if score > bestscore:
             moves = []
@@ -97,18 +193,30 @@ def minimax(depth, board, color):
 
     return max
 
+'''
+Alphabeta search, which keeps track of how many positions have been searched (to troubleshoot search explosion).
+'''
 def alphabeta_root(depth, board, color):
     if depth == 0:
         return [], evaluate(board, color)
 
+    alphabeta_counter_total = 0
+    quiesce_counter_total = 0
+    
     bestscore = -999
     moves = []
     for move in board.legal_moves:
         board.push(move)
-        score = -alphabeta(depth-1, board, -color, -999, 999)
+        neg_score, alphabeta_counter, quiesce_counter = alphabeta(depth-1, board, -color, -999, 999)
+        score = -neg_score
         board.pop()
         
-        #print('evaluated ' + board.san(move) + ' => ' + str(score))
+        print('evaluated ' + board.san(move) + ' => ' + str(score))
+        print("alphabeta_counter: " + str(alphabeta_counter))
+        print("quiesce_counter: " + str(quiesce_counter))
+
+        alphabeta_counter_total += alphabeta_counter
+        quiesce_counter_total += quiesce_counter
 
         if score > bestscore:
             moves = []
@@ -117,23 +225,29 @@ def alphabeta_root(depth, board, color):
         elif score == bestscore:
             moves.append(move)
 
+    print("alphabeta_counter_total: " + str(alphabeta_counter_total))
+    print("quiesce_counter_total: " + str(quiesce_counter_total))
+
     return moves, bestscore
 
-def alphabeta(depth, board, color, alpha, beta):
+def alphabeta(depth, board, color, alpha, beta, alphabeta_counter=0, quiesce_counter=0):
+    alphabeta_counter += 1
+
     if depth == 0:
-        return quiesce(board, color, alpha, beta)
-        #return evaluate(board, color)
-        
+        q, quiesce_counter = quiesce(2, board, color, alpha, beta, quiesce_counter)
+        return q, alphabeta_counter, quiesce_counter
+    
     for move in board.legal_moves:
         board.push(move)
-        score = -alphabeta(depth-1, board, -color, -beta, -alpha)
+        neg_score, alphabeta_counter, quiesce_counter = alphabeta(depth-1, board, -color, -beta, -alpha, alphabeta_counter, quiesce_counter)
+        score = -neg_score
         board.pop()
         if score >= beta:
-            return beta
+            return beta, alphabeta_counter, quiesce_counter
         if score > alpha:
             alpha = score
 
-    return alpha
+    return alpha, alphabeta_counter, quiesce_counter
 
 def process(request):
     if "gameId" not in request:
@@ -190,4 +304,19 @@ if __name__ == "__main__":
         request = ast.literal_eval(sys.argv[1])
         process(request)
     else:
-        print("Missing inputs")
+
+        # This is a good example for performance testing.  Findig the best move requires a depth of 4 and was taking
+        # ~42 seconds before adding some optimziations to the quiescence search (capture ordering and depth limit).
+        # Now it takes ~9 seconds and still find the best move (below).
+
+        start = time.perf_counter()
+        board = chess.Board()
+        board.set_fen("6k1/5r1p/p2N4/nppP2q1/2P5/1P2N3/PQ5P/7K w KQkq - 0 1")
+        print(board)
+        moves, score = alphabeta_root(4, board, 1)
+        stop = time.perf_counter()
+
+        print(len(moves)) # 1
+        print(board.san(moves[0])) # Qh8+
+        print(score) # 3
+        print(stop - start) # ~9.18

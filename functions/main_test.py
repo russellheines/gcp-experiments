@@ -97,8 +97,8 @@ def test_alphabeta():
     #assert 'Nxe5' == board.san(moves[0])
     # w/ quiesce search
     assert 0 == score
-    assert 21 == len(moves)
-    assert 'Nxe5' != board.san(moves[0]) # need to check all 18
+    assert 22 == len(moves)
+    assert 'Nxe5' != board.san(moves[0]) # need to check all 22
     moves, score = alphabeta_root(2, board, 1)
     # w/o quiesce search
     #assert 0 == score
@@ -106,8 +106,8 @@ def test_alphabeta():
     #assert 'Nxe5' != board.san(moves[0]) # need to check all 18
     # w/ quiesce search
     assert 0 == score
-    assert 21 == len(moves) # not 18?
-    assert 'Nxe5' != board.san(moves[0]) # need to check all 18
+    assert 21 == len(moves)
+    assert 'Nxe5' != board.san(moves[0]) # need to check all 21
 
     # lichess - absolute pin #1
     board.set_fen("7k/8/8/4n3/4P3/8/8/6BK w KQkq - 0 1")
